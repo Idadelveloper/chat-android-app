@@ -10,4 +10,5 @@
     <string name="hint_username">Username</string>
     <string name="dialog_button_yes">Yes</string>
     <string name="dialog_button_no">No</string>
+    <string name="collection_users">users_collection</string>
 </resources>
