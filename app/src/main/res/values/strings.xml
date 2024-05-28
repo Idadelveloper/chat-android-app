@@ -11,4 +11,6 @@
     <string name="dialog_button_yes">Yes</string>
     <string name="dialog_button_no">No</string>
     <string name="collection_users">users_collection</string>
+    <string name="type_a_message">Type a message</string>
+    <string name="send_button_text">Send</string>
 </resources>
