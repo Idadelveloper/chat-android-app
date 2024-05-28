@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
@@ -65,8 +66,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         mBinding.profileImage.setOnClickListener {
-            if (ActivityCompat.checkSelfPermission(this@MainActivity, android.Manifest.permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(
+                    this@MainActivity,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE
+                )
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestPermission()
             } else {
                 getImage()
@@ -81,78 +86,134 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun signIn() {
-        val email = mBinding.signInInputEmail.editText?.text.toString().trim()
-        val password = mBinding.signInInputPassword.editText?.text.toString().trim()
+    private fun signIn(
+        email: String = mBinding.signInInputEmail.editText?.text.toString().trim(),
+        password: String = mBinding.signInInputPassword.editText?.text.toString().trim()
+    ) {
+        showProgressBar1()
 
         if (email.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "You should provide an email and a password", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "You should provide an email and a password", Toast.LENGTH_LONG)
+                .show()
+            hideProgressBar1()
             return
         }
         FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) {task ->
+            .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Toast.makeText(this, "User is signed in", Toast.LENGTH_LONG).show()
+                    hideProgressBar1()
+                    sendToAct()
                 } else {
-                    Toast.makeText(this, "Couldn't sign in \nSomething went wrong", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this,
+                        "Couldn't sign in \nSomething went wrong",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    hideProgressBar1()
                 }
             }
     }
 
     private fun createAccount() {
+        showProgressBar2()
         val email = mBinding.signUpInputEmail.text.toString().trim()
         val password = mBinding.signUpInputPassword.text.toString().trim()
         val confirmPassword = mBinding.signUpInputConfirmPassword.text.toString().trim()
         val userName = mBinding.signUpInputUsername.text.toString().trim()
 
         if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            Toast.makeText(this, "You should provide an email and a password", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "You should provide an email and a password", Toast.LENGTH_LONG)
+                .show()
+            hideProgressBar2()
             return
         }
         if (userName.isEmpty()) {
             Toast.makeText(this, "You should provide a username", Toast.LENGTH_LONG).show()
+            hideProgressBar2()
             return
         }
         if (password != confirmPassword) {
             Toast.makeText(this, "Passwords do not match", Toast.LENGTH_LONG).show()
+            hideProgressBar2()
             return
         }
         if (password.length <= 6) {
-            Toast.makeText(this, "Password should have at least 6 characters", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Password should have at least 6 characters", Toast.LENGTH_LONG)
+                .show()
+            hideProgressBar2()
             return
         }
 
         FirebaseAuth.getInstance().createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener(this) {task ->
+            .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
                     Toast.makeText(this, "Account created", Toast.LENGTH_LONG).show()
+                    if (task.isComplete) {
+                        if (this::uri.isInitialized) {
+                            val filePath = storageRef.child("profile_images")
+                                .child(uri.lastPathSegment!!)
+                            filePath.putFile(uri).addOnSuccessListener { task ->
+                                val result: Task<Uri> = task.metadata?.reference?.downloadUrl!!
+                                result.addOnSuccessListener {
+                                    uri = it
+                                }
+
+                                val user =
+                                    User(
+                                        userName,
+                                        uri.toString(),
+                                        FirebaseAuth.getInstance().currentUser?.uid!!
+                                    )
+                                usersRef.document()
+                                    .set(user)
+                                    .addOnSuccessListener {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Account created",
+                                            Toast.LENGTH_LONG
+                                        )
+                                            .show()
+                                        hideProgressBar2()
+                                        sendToAct()
+                                    }.addOnFailureListener {
+                                        Toast.makeText(
+                                            this@MainActivity,
+                                            "Account wasn't created",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        hideProgressBar2()
+                                    }
+                            }
+                        } else {
+                            val user =
+                                User(userName, "", FirebaseAuth.getInstance().currentUser?.uid!!)
+                            usersRef.document()
+                                .set(user)
+                                .addOnSuccessListener {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Account created",
+                                        Toast.LENGTH_LONG
+                                    )
+                                        .show()
+                                    hideProgressBar2()
+                                    sendToAct()
+                                }.addOnFailureListener {
+                                    Toast.makeText(
+                                        this@MainActivity,
+                                        "Account wasn't created",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    hideProgressBar2()
+                                }
+                        }
+                    }
                 } else {
                     Toast.makeText(this, "${task.exception}", Toast.LENGTH_LONG).show()
                 }
             }
 
-        if (this::uri.isInitialized) {
-            val filePath = storageRef.child("profile_images")
-                .child(uri.lastPathSegment!!)
-            filePath.putFile(uri).addOnSuccessListener { task ->
-                val result: Task<Uri> = task.metadata?.reference?.downloadUrl!!
-                result.addOnSuccessListener {
-                    uri = it
-                }
-
-                val user = User(userName, uri.toString(), FirebaseAuth.getInstance().currentUser?.uid!!)
-                usersRef.document()
-                    .set(user)
-                    .addOnSuccessListener {
-                        Toast.makeText(this@MainActivity, "Account created", Toast.LENGTH_LONG).show()
-                        sendToAct()
-                    }.addOnFailureListener {
-                        Toast.makeText(this@MainActivity, "Account wasn't created", Toast.LENGTH_LONG).show()
-                    }
-            }
-        } else {
-
-        }
     }
 
     private fun startNextAnimation() {
@@ -176,20 +237,27 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun requestPermission() {
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this@MainActivity,
-                android.Manifest.permission.READ_MEDIA_IMAGES)) {
+        if (ActivityCompat.shouldShowRequestPermissionRationale(
+                this@MainActivity,
+                android.Manifest.permission.READ_MEDIA_IMAGES
+            )
+        ) {
             AlertDialog.Builder(this@MainActivity)
-                .setPositiveButton(R.string.dialog_button_yes) {_, _ ->
-                    ActivityCompat.requestPermissions(this@MainActivity, arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
-                        STORAGE_REQUEST_CODE)
-                }.setNegativeButton(R.string.dialog_button_no) {dialog, _ ->
+                .setPositiveButton(R.string.dialog_button_yes) { _, _ ->
+                    ActivityCompat.requestPermissions(
+                        this@MainActivity, arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
+                        STORAGE_REQUEST_CODE
+                    )
+                }.setNegativeButton(R.string.dialog_button_no) { dialog, _ ->
                     dialog.cancel()
                 }.setTitle("Permission needed")
                 .setMessage("Permission is needed for accessing the internal storage")
                 .show()
         } else {
-            ActivityCompat.requestPermissions(this@MainActivity, arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
-                STORAGE_REQUEST_CODE)
+            ActivityCompat.requestPermissions(
+                this@MainActivity, arrayOf(android.Manifest.permission.READ_MEDIA_IMAGES),
+                STORAGE_REQUEST_CODE
+            )
         }
     }
 
@@ -200,7 +268,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == STORAGE_REQUEST_CODE && grantResults.isNotEmpty()
-            && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            && grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
             getImage()
         } else {
             Toast.makeText(this@MainActivity, "Permission not granted", Toast.LENGTH_LONG).show()
@@ -209,5 +278,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun sendToAct() {
         startActivity(Intent(this@MainActivity, ChatActivity::class.java))
+    }
+
+    private fun showProgressBar1() {
+        mBinding.progressBar1.visibility = View.VISIBLE
+    }
+
+    private fun hideProgressBar1() {
+        mBinding.progressBar1.visibility = View.GONE
+    }
+
+    private fun showProgressBar2() {
+        mBinding.progressBar2.visibility = View.VISIBLE
+    }
+
+    private fun hideProgressBar2() {
+        mBinding.progressBar2.visibility = View.GONE
     }
 }
