@@ -4,12 +4,9 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.databinding.DataBindingUtil
 import com.example.chatapp.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.ktx.Firebase
 
 class MainActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityMainBinding
@@ -27,15 +24,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         mBinding.textViewRegister.setOnClickListener {
-            mBinding.flipper.setInAnimation(this, android.R.anim.slide_in_left)
-            mBinding.flipper.setOutAnimation(this, android.R.anim.slide_out_right)
-            mBinding.flipper.showNext()
+            startNextAnimation()
         }
 
         mBinding.textViewSignIn.setOnClickListener {
-            mBinding.flipper.setInAnimation(this, R.anim.slide_in_right)
-            mBinding.flipper.setOutAnimation(this, R.anim.slide_out_left)
-            mBinding.flipper.showPrevious()
+            startPreviousAnimation()
+        }
+
+        mBinding.textViewGoToProfile.setOnClickListener {
+            startNextAnimation()
+        }
+
+        mBinding.textViewSignUp.setOnClickListener {
+            startPreviousAnimation()
         }
     }
 
@@ -79,5 +80,17 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this, "${task.exception}", Toast.LENGTH_LONG).show()
                 }
             }
+    }
+
+    private fun startNextAnimation() {
+        mBinding.flipper.setInAnimation(this, android.R.anim.slide_in_left)
+        mBinding.flipper.setOutAnimation(this, android.R.anim.slide_out_right)
+        mBinding.flipper.showNext()
+    }
+
+    private fun startPreviousAnimation() {
+        mBinding.flipper.setInAnimation(this, R.anim.slide_in_right)
+        mBinding.flipper.setOutAnimation(this, R.anim.slide_out_left)
+        mBinding.flipper.showPrevious()
     }
 }
