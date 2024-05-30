@@ -64,7 +64,7 @@ class MessagesAdaptor(
 
     inner class SenderViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val textViewSender: TextView = view.findViewById(R.id.sender_text_view)
-        val senderProfileImage: CircleImageView = view.findViewById(R.id.sender_text_view)
+        val senderProfileImage: CircleImageView = view.findViewById(R.id.sender_profile_image)
     }
 
 }
